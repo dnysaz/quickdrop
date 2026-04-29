@@ -1,7 +1,7 @@
 <script setup>
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import QrcodeVue from 'qrcode.vue'
-import { Copy, Check } from 'lucide-vue-next'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { Check, Copy, X } from 'lucide-vue-next'
 
 const props = defineProps({
   value: String,
@@ -11,7 +11,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['expired'])
+const emit = defineEmits(['expired', 'close'])
 
 const copied = ref(false)
 const timeLeft = ref(props.initialTtl)
@@ -96,10 +96,18 @@ onUnmounted(() => {
     :style="{ transform: `translate(${position.x}px, ${position.y}px)` }"
   >
     <div 
-      class="bg-white p-4 border border-slate-200 flex flex-col items-center gap-3 cursor-grab active:cursor-grabbing"
+      class="bg-white p-4 border border-slate-200 flex flex-col items-center gap-3 cursor-grab active:cursor-grabbing relative"
       @mousedown="startDrag"
       @touchstart="startDrag"
     >
+      <!-- Close Button -->
+      <button 
+        @click.stop="emit('close')"
+        class="absolute -top-3 -right-3 w-6 h-6 bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors shadow-sm"
+      >
+        <X :size="14" />
+      </button>
+
       <div class="bg-white p-2">
         <qrcode-vue :value="value" :size="120" level="H" render-as="svg" foreground="#0f172a" />
       </div>

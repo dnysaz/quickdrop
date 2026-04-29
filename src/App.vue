@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import QRCodeDisplay from './components/QRCodeDisplay.vue'
+import { Info } from 'lucide-vue-next'
 
 const text = ref('')
 const id = ref('')
@@ -10,6 +11,8 @@ const textareaRef = ref(null)
 const ttl = ref(600)
 const isFocused = ref(false)
 const isSyncing = ref(false)
+const showQR = ref(false)
+const showHelp = ref(false)
 
 let pollInterval = null
 let saveTimeout = null
@@ -94,6 +97,19 @@ const handleExpired = () => {
   text.value = ""
   id.value = ""
   shareUrl.value = ""
+  showQR.value = false
+  localStorage.removeItem('qd_draft')
+  window.history.pushState({}, '', '/')
+}
+
+const handleClear = () => {
+  if (id.value) {
+    axios.post('/api/drop', { id: id.value, text: '' }).catch(() => {})
+  }
+  text.value = ""
+  id.value = ""
+  shareUrl.value = ""
+  showQR.value = false
   localStorage.removeItem('qd_draft')
   window.history.pushState({}, '', '/')
 }
@@ -103,6 +119,7 @@ const initDrop = () => {
     id.value = generateId()
     shareUrl.value = `${window.location.origin}/${id.value}`
     window.history.pushState({}, '', `/${id.value}`)
+    showQR.value = true // Show QR by default on new drop
   }
 }
 
@@ -115,8 +132,33 @@ const handleFocus = () => isFocused.value = true
 const handleBlur = () => isFocused.value = false
 
 watch(text, (newText) => {
+  // Command Check
+  const trimmed = newText.trim().toLowerCase()
+  
+  if (trimmed === ':qr') {
+    text.value = ''
+    showQR.value = true
+    return
+  }
+  
+  if (trimmed === ':clear') {
+    handleClear()
+    return
+  }
+  
+  if (trimmed === ':help') {
+    if (newText.length === 5) { // Only if nothing else was there
+      text.value = ''
+      showHelp.value = true
+      return
+    }
+  }
+
   if (newText.trim() === '') {
     localStorage.removeItem('qd_draft')
+    // Don't auto-delete on backspace if we want to keep session, 
+    // but user asked for :clear specifically now.
+    // However, keeping previous "empty = delete" logic is safer for ephemeral feel.
     if (id.value) {
       axios.post('/api/drop', { id: id.value, text: '' }).catch(() => {})
       id.value = ''
@@ -168,12 +210,42 @@ watch(text, (newText) => {
       autofocus
     ></textarea>
 
+    <!-- Help Overlay -->
+    <Transition name="fade">
+      <div v-if="showHelp" @click="showHelp = false" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[200] flex items-center justify-center p-6">
+        <div class="max-w-md w-full bg-white border border-slate-200 p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+          <div class="flex items-center gap-3 mb-6 text-blue-600">
+            <Info :size="24" />
+            <h2 class="text-xl font-semibold">QuickDrop Commands</h2>
+          </div>
+          <div class="space-y-4 font-mono text-sm">
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-900 font-bold">:qr</span>
+              <span class="text-slate-500 text-right">Show shareable QR code</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-900 font-bold">:clear</span>
+              <span class="text-slate-500 text-right">Delete session & content</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-900 font-bold">:help</span>
+              <span class="text-slate-500 text-right">Show this message</span>
+            </div>
+          </div>
+          <button @click="showHelp = false" class="w-full mt-8 py-3 bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors">
+            Got it
+          </button>
+        </div>
+      </div>
+    </Transition>
+
     <Transition name="slide-up">
       <QRCodeDisplay 
-        v-if="shareUrl" 
+        v-if="shareUrl && showQR" 
         :value="shareUrl" 
         :initial-ttl="ttl" 
         @expired="handleExpired"
+        @close="showQR = false"
       />
     </Transition>
   </div>
@@ -189,5 +261,15 @@ watch(text, (newText) => {
 .slide-up-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
