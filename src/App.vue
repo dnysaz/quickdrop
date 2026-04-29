@@ -166,7 +166,7 @@ const fetchPreview = async (url) => {
     <div 
       v-show="!isFocused && text.length > 0" 
       @click="startEditing"
-      class="w-full h-full flex-1 text-2xl md:text-4xl font-light text-slate-800 cursor-text transition-all duration-700 break-words whitespace-pre-wrap outline-none"
+      class="w-full h-full flex-1 text-lg md:text-xl font-light text-slate-800 cursor-text transition-all duration-700 break-words whitespace-pre-wrap outline-none"
       v-html="parsedText"
     ></div>
 
@@ -177,7 +177,7 @@ const fetchPreview = async (url) => {
       @focus="handleFocus"
       @blur="handleBlur"
       placeholder="Start typing..."
-      class="w-full h-full flex-1 bg-transparent border-none outline-none resize-none text-2xl md:text-4xl font-light text-slate-800 placeholder:text-slate-200 transition-all duration-700"
+      class="w-full h-full flex-1 bg-transparent border-none outline-none resize-none text-lg md:text-xl font-light text-slate-800 placeholder:text-slate-200 transition-all duration-700"
       spellcheck="false"
       autofocus
     ></textarea>
