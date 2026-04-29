@@ -1,0 +1,27 @@
+{
+  "name": "quickdrop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.15.2",
+    "ioredis": "^5.10.1",
+    "lucide-vue-next": "^1.0.0",
+    "nanoid": "^5.1.9",
+    "qrcode.vue": "^3.9.0",
+    "vue": "^3.5.32"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.4",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.12",
+    "tailwindcss": "^4.2.4",
+    "vite": "^8.0.10"
+  }
+}
