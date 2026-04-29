@@ -2,11 +2,9 @@
 import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import QRCodeDisplay from './components/QRCodeDisplay.vue'
-import LinkPreviewCard from './components/LinkPreviewCard.vue'
 
 const text = ref('')
 const id = ref('')
-const preview = ref(null)
 const shareUrl = ref('')
 const textareaRef = ref(null)
 const ttl = ref(600)
@@ -85,8 +83,19 @@ const startPolling = () => {
       if (res.data.text !== text.value) {
         text.value = res.data.text
       }
+      if (res.data.ttl) {
+        ttl.value = res.data.ttl
+      }
     } catch (e) {}
   }, 2000) 
+}
+
+const handleExpired = () => {
+  text.value = ""
+  id.value = ""
+  shareUrl.value = ""
+  localStorage.removeItem('qd_draft')
+  window.history.pushState({}, '', '/')
 }
 
 const initDrop = () => {
@@ -114,7 +123,6 @@ watch(text, (newText) => {
       shareUrl.value = ''
       window.history.pushState({}, '', '/')
     }
-    preview.value = null
     return
   }
 
@@ -130,29 +138,7 @@ watch(text, (newText) => {
         .finally(() => isSyncing.value = false)
     }, 500)
   }
-  
-  const matches = newText.match(new RegExp(urlRegex.source, 'gi'))
-  if (matches && matches.length > 0) {
-    const lastUrl = matches[matches.length - 1]
-    if (!preview.value || preview.value.url !== lastUrl) {
-      fetchPreview(lastUrl)
-    }
-  } else {
-    preview.value = null
-  }
 }, { immediate: true })
-
-const fetchPreview = async (url) => {
-  isSyncing.value = true
-  try {
-    const res = await axios.get(`/api/preview?url=${encodeURIComponent(url)}`)
-    preview.value = { ...res.data, url }
-  } catch (err) {
-    preview.value = null
-  } finally {
-    isSyncing.value = false
-  }
-}
 </script>
 
 <template>
@@ -183,11 +169,12 @@ const fetchPreview = async (url) => {
     ></textarea>
 
     <Transition name="slide-up">
-      <QRCodeDisplay v-if="shareUrl" :value="shareUrl" :initial-ttl="ttl" />
-    </Transition>
-
-    <Transition name="slide-up">
-      <LinkPreviewCard v-if="preview && !isFocused" :preview="preview" />
+      <QRCodeDisplay 
+        v-if="shareUrl" 
+        :value="shareUrl" 
+        :initial-ttl="ttl" 
+        @expired="handleExpired"
+      />
     </Transition>
   </div>
 </template>

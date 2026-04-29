@@ -11,9 +11,22 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['expired'])
+
 const copied = ref(false)
 const timeLeft = ref(props.initialTtl)
+const position = ref({ x: 0, y: 0 })
+const isDragging = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+
 let timer = null
+
+// Keep timer synced with server updates
+watch(() => props.initialTtl, (newVal) => {
+  if (Math.abs(timeLeft.value - newVal) > 5) {
+    timeLeft.value = newVal
+  }
+})
 
 const copyToClipboard = () => {
   navigator.clipboard.writeText(props.value)
@@ -27,12 +40,47 @@ const formattedTime = computed(() => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 })
 
+// Drag logic
+const startDrag = (e) => {
+  isDragging.value = true
+  const clientX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX
+  const clientY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY
+  dragOffset.value = {
+    x: clientX - position.value.x,
+    y: clientY - position.value.y
+  }
+  
+  window.addEventListener('mousemove', onDrag)
+  window.addEventListener('mouseup', stopDrag)
+  window.addEventListener('touchmove', onDrag)
+  window.addEventListener('touchend', stopDrag)
+}
+
+const onDrag = (e) => {
+  if (!isDragging.value) return
+  const clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX
+  const clientY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY
+  position.value = {
+    x: clientX - dragOffset.value.x,
+    y: clientY - dragOffset.value.y
+  }
+}
+
+const stopDrag = () => {
+  isDragging.value = false
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('mouseup', stopDrag)
+  window.removeEventListener('touchmove', onDrag)
+  window.removeEventListener('touchend', stopDrag)
+}
+
 onMounted(() => {
   timer = setInterval(() => {
     if (timeLeft.value > 0) {
       timeLeft.value--
     } else {
       clearInterval(timer)
+      emit('expired')
     }
   }, 1000)
 })
@@ -43,14 +91,21 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="fixed bottom-6 right-6 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div class="bg-white p-4 border border-slate-200 flex flex-col items-center gap-3">
+  <div 
+    class="fixed bottom-6 right-6 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500 z-50 select-none"
+    :style="{ transform: `translate(${position.x}px, ${position.y}px)` }"
+  >
+    <div 
+      class="bg-white p-4 border border-slate-200 flex flex-col items-center gap-3 cursor-grab active:cursor-grabbing"
+      @mousedown="startDrag"
+      @touchstart="startDrag"
+    >
       <div class="bg-white p-2">
         <qrcode-vue :value="value" :size="120" level="H" render-as="svg" foreground="#0f172a" />
       </div>
       
       <button 
-        @click="copyToClipboard"
+        @click.stop="copyToClipboard"
         class="flex items-center justify-center w-full gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-all active:scale-95"
       >
         <Check v-if="copied" :size="16" />
