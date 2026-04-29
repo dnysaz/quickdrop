@@ -12,7 +12,7 @@ const isFocused = ref(false)
 const isSyncing = ref(false)
 const showQR = ref(false)
 
-const supportUrl = import.meta.env.VITE_SUPPORT_URL || 'https://saweria.co/dnysaz'
+const supportUrl = import.meta.env.VITE_SUPPORT_URL || ''
 
 let pollInterval = null
 let saveTimeout = null
@@ -143,12 +143,13 @@ const handleKeydown = (e) => {
     }
     if (lastLine === ':help') {
       e.preventDefault()
-      text.value = `QuickDrop Commands:
+      const helpMsg = `QuickDrop Commands:
 :qr    - Show shareable QR code
 :clear - Delete session & content
 :help  - Show this help message
 
-Support <3 ${supportUrl}`
+Support 🖤 ${supportUrl || ''}`
+      text.value = helpMsg.trim()
       return
     }
   }
