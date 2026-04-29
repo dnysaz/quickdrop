@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 import QRCodeDisplay from './components/QRCodeDisplay.vue'
-import { Heart } from 'lucide-vue-next'
 
 const text = ref('')
 const id = ref('')
@@ -13,7 +12,7 @@ const isFocused = ref(false)
 const isSyncing = ref(false)
 const showQR = ref(false)
 
-const supportUrl = import.meta.env.VITE_SUPPORT_URL || '#'
+const supportUrl = import.meta.env.VITE_SUPPORT_URL || 'https://saweria.co/dnysaz'
 
 let pollInterval = null
 let saveTimeout = null
@@ -120,30 +119,36 @@ const initDrop = () => {
     id.value = generateId()
     shareUrl.value = `${window.location.origin}/${id.value}`
     window.history.pushState({}, '', `/${id.value}`)
-    showQR.value = true
+    // showQR.value = true // REMOVED: Only show if requested via :qr
   }
 }
 
 const handleKeydown = (e) => {
   if (e.key === 'Enter') {
-    const trimmed = text.value.trim().toLowerCase()
-    if (trimmed === ':qr') {
+    // Check only the last line for commands
+    const lines = text.value.split('\n')
+    const lastLine = lines[lines.length - 1].trim().toLowerCase()
+    
+    if (lastLine === ':qr') {
       e.preventDefault()
-      text.value = ''
+      lines.pop()
+      text.value = lines.join('\n')
       showQR.value = true
       return
     }
-    if (trimmed === ':clear') {
+    if (lastLine === ':clear') {
       e.preventDefault()
       handleClear()
       return
     }
-    if (trimmed === ':help') {
+    if (lastLine === ':help') {
       e.preventDefault()
       text.value = `QuickDrop Commands:
 :qr    - Show shareable QR code
 :clear - Delete session & content
-:help  - Show this help message`
+:help  - Show this help message
+
+Support <3 ${supportUrl}`
       return
     }
   }
@@ -211,14 +216,6 @@ watch(text, (newText) => {
       spellcheck="false"
       autofocus
     ></textarea>
-
-    <!-- Footer Support Link -->
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-slate-300 hover:text-slate-500 transition-colors cursor-default select-none group">
-      <span class="text-xs font-medium tracking-widest uppercase">support</span>
-      <a :href="supportUrl" target="_blank" class="flex items-center justify-center p-1.5 group-hover:text-red-500 transition-colors">
-        <Heart :size="14" fill="currentColor" />
-      </a>
-    </div>
 
     <Transition name="slide-up">
       <QRCodeDisplay 
